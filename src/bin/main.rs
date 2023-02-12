@@ -1,6 +1,5 @@
-#![allow(dead_code, unused_imports, unused_variables)]
 use climbsheet::{
-    config, setup, sheet_util,
+    config, setup,
     sheet_util::{
         format_sheet_name, parse_location_from_gym_name, wall_category_to_plural_human_type,
     },
