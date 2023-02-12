@@ -1,13 +1,50 @@
+use std::collections::HashSet;
+
 use crate::{
     config,
     sheets::{
-        self, get_updated_row_from_update_values_response, set_cell_background_color,
-        sort_sheet_by_column, SheetsClient, Spreadsheet,
+        self, get_sheet_rows, get_updated_row_from_update_values_response,
+        set_cell_background_color, sort_sheet_by_column, SheetsClient, Spreadsheet,
     },
     vertical_life,
 };
 use eyre::Result;
 use tracing::*;
+
+/// Spreadsheet rows of type Vec<String> are parsed to these to make them a bit
+/// more comprehensible
+#[derive(Debug, Eq, PartialEq, Hash)]
+pub struct ClimbSheetRow {
+    route_card_label: String,
+    difficulty: String,
+    set_at_human_date: String,
+    route_setter: String,
+    parent_name: String,
+}
+
+impl From<&vertical_life::Climb> for ClimbSheetRow {
+    fn from(climb: &vertical_life::Climb) -> Self {
+        climb.to_sheet_row().into()
+    }
+}
+
+impl From<Vec<String>> for ClimbSheetRow {
+    fn from(row: Vec<String>) -> Self {
+        // Start from first non empty element
+        // For some reason, row might not have the first column with background color as ""
+        let row = row
+            .into_iter()
+            .skip_while(|s| s.is_empty())
+            .collect::<Vec<_>>();
+        Self {
+            route_card_label: row[0].clone(),
+            difficulty: row[1].clone(),
+            set_at_human_date: row[2].clone(),
+            route_setter: row[3].clone(),
+            parent_name: row[4].clone(),
+        }
+    }
+}
 
 /// Find sheet in spreadsheet that matches gym's name and the wall category
 /// For example, for gym_name "Kiipeilyareena Ristikko" and wall_category "gym_bouldering"
@@ -59,6 +96,7 @@ pub async fn add_wall_to_sheet(
     config: &config::Config,
     sheets: &SheetsClient,
     spreadsheet: &Spreadsheet,
+    gym_sheet_routes: &HashSet<ClimbSheetRow>,
     gym: &vertical_life::Gym,
     wall: &vertical_life::Wall,
 ) -> Result<()> {
@@ -68,12 +106,52 @@ pub async fn add_wall_to_sheet(
 
     for climb in wall.climbs() {
         info!(?climb, "got climb");
+        if gym_sheet_routes.contains(&climb.into()) {
+            info!(?climb, "climb already exists in sheet, skipping");
+            continue;
+        }
+
         append_climb_to_sheet(config, sheets, sheet_id, &sheet_name, sheet_id_num, climb).await?;
     }
 
     sort_sheet_by_column(sheets, sheet_id, sheet_id_num, config.date_column_idx).await?;
 
     Ok(())
+}
+
+/// For a gym, return rows from the spreadsheets all sheets (pages) that belong to the gym For
+/// example, for Ristikko, you would return rows from Ristikko - Reitit and Ristikko - Boulderit
+/// pages
+pub async fn get_gym_routes_from_sheet(
+    config: &config::Config,
+    sheets: &SheetsClient,
+    gym: &vertical_life::Gym,
+) -> Result<Vec<ClimbSheetRow>> {
+    info!(?gym, "getting gym routes from sheet");
+    let gym_sheet_names = vertical_life::WALL_CATEGORIES.iter().map(|c| {
+        format_sheet_name(
+            parse_location_from_gym_name(&gym.name),
+            &wall_category_to_plural_human_type(c),
+        )
+    });
+
+    let sheets_rows =
+        futures::future::join_all(gym_sheet_names.into_iter().map(|sheet_name| async move {
+            get_sheet_rows(sheets, &config.sheet_id, &sheet_name)
+                .await
+                .map(|rows| {
+                    rows.into_iter()
+                        // Skip the header row
+                        .skip(1)
+                        .map(ClimbSheetRow::from)
+                        .collect::<Vec<_>>()
+                })
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
+
+    Ok(sheets_rows.into_iter().flatten().collect())
 }
 
 /// Returns for example "Ristikko - Reitit"

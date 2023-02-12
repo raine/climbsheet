@@ -1,6 +1,8 @@
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
+use crate::sheets::Row;
+
 #[derive(Debug, Deserialize)]
 pub struct GymSector {
     pub id: u32,
@@ -69,7 +71,7 @@ pub struct Climb {
 }
 
 impl Climb {
-    pub fn to_sheet_row(&self) -> Vec<String> {
+    pub fn to_sheet_row(&self) -> Row {
         vec![
             self.route_card_label.to_string(),
             self.difficulty.to_string(),

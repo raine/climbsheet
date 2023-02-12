@@ -19,6 +19,7 @@ use tokio::sync::Mutex;
 
 pub type SheetsClient = Sheets<HttpsConnector<HttpConnector>>;
 pub type Spreadsheet = sheets4::api::Spreadsheet;
+pub type Row = Vec<String>;
 
 pub async fn get_client() -> Result<SheetsClient> {
     let secret = sheets4::oauth2::read_service_account_key("credentials.json").await?;
@@ -47,7 +48,7 @@ pub async fn append_row(
     sheets: &SheetsClient,
     sheet_id: &str,
     sheet_name: &str,
-    row: Vec<String>,
+    row: Row,
 ) -> Result<sheets4::api::AppendValuesResponse> {
     let request = ValueRange {
         major_dimension: None,
@@ -217,7 +218,7 @@ pub async fn get_sheet_rows(
     sheets: &SheetsClient,
     sheet_id: &str,
     sheet_name: &str,
-) -> Result<Vec<Vec<String>>> {
+) -> Result<Vec<Row>> {
     let request = sheets
         .spreadsheets()
         .values_get(sheet_id, sheet_name)
