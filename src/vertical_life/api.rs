@@ -1,9 +1,17 @@
-use std::{fs::File, io::Write};
-
 use eyre::Result;
-use reqwest::header::{HeaderMap, HeaderValue};
+use std::{fs::File, io::Write};
+use tracing::*;
 
-use super::{types::Gym, GymSectorFull};
+use reqwest::{
+    header::{HeaderMap, HeaderValue},
+    StatusCode,
+};
+
+use super::{types::Gym, GymSectorFull, VerticalLifeAuthClient};
+
+const BASE_URL: &str = "https://vlcapi.vertical-life.info";
+const USER_AGENT_VALUE: &str = "Vertical Life Climbing/6.14.0 (iPhone12,3; iOS 16.1.1; Scale/3.00)";
+const MAX_ATTEMPTS: u8 = 3;
 
 #[derive(Debug)]
 pub struct VerticalLifeClient {
@@ -11,9 +19,6 @@ pub struct VerticalLifeClient {
     pub access_token: String,
     pub refresh_token: String,
 }
-
-const BASE_URL: &str = "https://vlcapi.vertical-life.info";
-const USER_AGENT_VALUE: &str = "Vertical Life Climbing/6.14.0 (iPhone12,3; iOS 16.1.1; Scale/3.00)";
 
 impl VerticalLifeClient {
     pub fn new(access_token: String, refresh_token: String) -> Self {
@@ -27,37 +32,62 @@ impl VerticalLifeClient {
         }
     }
 
-    // Retry on unauthorized
-    pub async fn get_gym_details(&self, gym_id: u32) -> Result<Gym> {
-        let headers = make_headers(&self.access_token);
-        let params = [("details", "overview")];
-        let url = format!("{}/gyms/{}", BASE_URL, gym_id);
-        let res = self
-            .client
-            .get(&url)
-            .headers(headers)
-            .query(&params)
-            .send()
-            .await?
-            .error_for_status()?;
-        let gym: Gym = res.json().await?;
-        Ok(gym)
+    async fn refresh_access_token(&mut self) -> Result<()> {
+        let token_result = VerticalLifeAuthClient::refresh_token(&self.refresh_token).await?;
+        self.access_token = token_result.access_token;
+        self.refresh_token = token_result.refresh_token;
+        Ok(())
     }
 
-    pub async fn get_gym_sector(&self, gym_sector_id: u32) -> Result<GymSectorFull> {
-        let headers = make_headers(&self.access_token);
-        let res = self
-            .client
-            .get(format!("{}/gym_sectors/{}", BASE_URL, gym_sector_id))
-            .headers(headers)
-            .send()
-            .await?;
+    async fn make_request<T>(&mut self, request_fn: T) -> Result<reqwest::Response>
+    where
+        T: FnOnce(&mut reqwest::Client) -> reqwest::RequestBuilder + std::marker::Copy,
+    {
+        let mut attempts = 0;
+        loop {
+            let headers = make_headers(&self.access_token);
+            let result = request_fn(&mut self.client)
+                .headers(headers)
+                .send()
+                .await?
+                .error_for_status();
+            match result {
+                Ok(res) => return Ok(res),
+                Err(err) => {
+                    error!(?err, "failed to make request");
+                    if err.status() == Some(StatusCode::UNAUTHORIZED) && attempts < MAX_ATTEMPTS {
+                        attempts += 1;
+                        self.refresh_access_token().await?;
+                    } else {
+                        return Err(err.into());
+                    }
+                }
+            }
+        }
+    }
 
-        let body = res.text().await?;
-        // Write json body to file with gym sector id  formatted
-        let mut file = File::create(format!("data/gym_sector_{}.json", gym_sector_id))?;
-        file.write_all(body.as_bytes())?;
-        let gym_sector = serde_json::from_str::<GymSectorFull>(&body)?;
+    pub async fn get_gym_details(&mut self, gym_id: u32) -> Result<Gym> {
+        info!(?gym_id, "getting gym details");
+        let res = self
+            .make_request(|client| {
+                let params = [("details", "overview")];
+                client
+                    .get(&format!("{}/gyms/{}", BASE_URL, gym_id))
+                    .form(&params)
+            })
+            .await?;
+        let gym_sector = res.json().await?;
+        Ok(gym_sector)
+    }
+
+    pub async fn get_gym_sector(&mut self, gym_sector_id: u32) -> Result<GymSectorFull> {
+        info!(?gym_sector_id, "getting gym sector");
+        let res = self
+            .make_request(|client| {
+                client.get(&format!("{}/gym_sectors/{}", BASE_URL, gym_sector_id))
+            })
+            .await?;
+        let gym_sector = res.json().await?;
         Ok(gym_sector)
     }
 }

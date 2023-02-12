@@ -151,8 +151,8 @@ impl VerticalLifeAuthClient {
         Ok(token_result)
     }
 
-    #[allow(dead_code)]
     pub async fn refresh_token(refresh_token: &str) -> Result<TokenResult> {
+        info!("refreshing access token");
         let auth_client = VerticalLifeAuthClient::new();
         let url = format!(
             "{}/auth/realms/Vertical-Life/protocol/openid-connect/token",

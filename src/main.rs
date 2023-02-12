@@ -96,7 +96,7 @@ async fn main() -> Result<()> {
         config.vertical_life_password.expose_secret(),
     )
     .await?;
-    let client = VerticalLifeClient::new(result.access_token, result.refresh_token);
+    let mut client = VerticalLifeClient::new(result.access_token, result.refresh_token);
     let spreadsheet = sheets::get_spreadsheet(&sheets, &config.sheet_id).await?;
 
     for gym_id in &config.gyms {
