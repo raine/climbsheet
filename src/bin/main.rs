@@ -58,7 +58,7 @@ pub async fn append_climb_to_sheet(
     Ok(())
 }
 
-async fn add_wall_to_sheet<'a>(
+async fn add_wall_to_sheet(
     config: &config::Config,
     sheets: &SheetsClient,
     spreadsheet: &Spreadsheet,
