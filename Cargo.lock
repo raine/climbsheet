@@ -147,6 +147,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "climbsheet"
+version = "0.1.0"
+dependencies = [
+ "base64 0.21.0",
+ "chrono",
+ "color-eyre",
+ "eyre",
+ "google-sheets4",
+ "lazy_static",
+ "rand 0.8.5",
+ "regex",
+ "reqwest",
+ "scraper",
+ "secrecy",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
+ "url 2.3.1",
+]
+
+[[package]]
 name = "codespan-reporting"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2221,31 +2246,6 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
-
-[[package]]
-name = "vertical"
-version = "0.1.0"
-dependencies = [
- "base64 0.21.0",
- "chrono",
- "color-eyre",
- "eyre",
- "google-sheets4",
- "lazy_static",
- "rand 0.8.5",
- "regex",
- "reqwest",
- "scraper",
- "secrecy",
- "serde",
- "serde_json",
- "sha2",
- "tokio",
- "toml",
- "tracing",
- "tracing-subscriber",
- "url 2.3.1",
-]
 
 [[package]]
 name = "want"

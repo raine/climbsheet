@@ -1,21 +1,17 @@
 #![allow(dead_code, unused_imports, unused_variables)]
-use config::Config;
-use eyre::Result;
-use setup::setup;
-use sheet_util::{
-    format_sheet_name, parse_location_from_gym_name, wall_category_to_plural_human_type,
+use climbsheet::{
+    config, setup, sheet_util,
+    sheet_util::{
+        format_sheet_name, parse_location_from_gym_name, wall_category_to_plural_human_type,
+    },
+    sheets::{
+        self, get_updated_row_from_update_values_response, set_cell_background_color,
+        sort_sheet_by_column, SheetsClient, Spreadsheet,
+    },
+    vertical_life,
 };
-use sheets::{sort_sheet_by_column, SheetsClient, Spreadsheet};
+use eyre::Result;
 use tracing::*;
-use vertical_life::{VerticalLifeAuthClient, VerticalLifeClient};
-
-use crate::sheets::{get_updated_row_from_update_values_response, set_cell_background_color};
-
-mod config;
-mod setup;
-mod sheet_util;
-mod sheets;
-mod vertical_life;
 
 /// Find sheet in spreadsheet that matches gym's name and the wall category
 /// For example, for gym_name "Kiipeilyareena Ristikko" and wall_category "gym_bouldering"
@@ -41,7 +37,7 @@ pub fn get_sheet_for_gym_name_and_wall_category(
 }
 
 pub async fn append_climb_to_sheet(
-    config: &Config,
+    config: &config::Config,
     sheets: &SheetsClient,
     sheet_id: &str,
     sheet_name: &str,
@@ -64,7 +60,7 @@ pub async fn append_climb_to_sheet(
 }
 
 async fn add_wall_to_sheet<'a>(
-    config: &Config,
+    config: &config::Config,
     sheets: &SheetsClient,
     spreadsheet: &Spreadsheet,
     gym: &vertical_life::Gym,
@@ -86,17 +82,18 @@ async fn add_wall_to_sheet<'a>(
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    setup()?;
+    setup::setup()?;
     let config = config::read_config();
     let sheets = sheets::get_client().await?;
-
     info!(?config.gyms, "starting with config");
-    let result = VerticalLifeAuthClient::do_auth_flow(
+
+    let result = vertical_life::VerticalLifeAuthClient::do_auth_flow(
         &config.vertical_life_email,
         config.vertical_life_password.expose_secret(),
     )
     .await?;
-    let mut client = VerticalLifeClient::new(result.access_token, result.refresh_token);
+    let mut client =
+        vertical_life::VerticalLifeClient::new(result.access_token, result.refresh_token);
     let spreadsheet = sheets::get_spreadsheet(&sheets, &config.sheet_id).await?;
 
     for gym_id in &config.gyms {

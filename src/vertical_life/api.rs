@@ -1,5 +1,4 @@
 use eyre::Result;
-use std::{fs::File, io::Write};
 use tracing::*;
 
 use reqwest::{
@@ -9,7 +8,7 @@ use reqwest::{
 
 use super::{types::Gym, GymSectorFull, VerticalLifeAuthClient};
 
-const BASE_URL: &str = "https://vlcapi.vertical-life.info";
+pub const BASE_URL: &str = "https://vlcapi.vertical-life.info";
 const USER_AGENT_VALUE: &str = "Vertical Life Climbing/6.14.0 (iPhone12,3; iOS 16.1.1; Scale/3.00)";
 const MAX_ATTEMPTS: u8 = 3;
 
