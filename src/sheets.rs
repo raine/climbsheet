@@ -213,6 +213,19 @@ pub async fn reset_row_format(
     Ok(())
 }
 
+pub async fn get_sheet_rows(
+    sheets: &SheetsClient,
+    sheet_id: &str,
+    sheet_name: &str,
+) -> Result<Vec<Vec<String>>> {
+    let request = sheets
+        .spreadsheets()
+        .values_get(sheet_id, sheet_name)
+        .major_dimension("ROWS");
+    let (_, res) = request.doit().await?;
+    Ok(res.values.unwrap_or_default())
+}
+
 /// Returns zero indexed row number
 pub fn get_updated_row_from_update_values_response(
     append_values_res: &AppendValuesResponse,
