@@ -30,7 +30,7 @@ pub struct Wall {
     pub gym_sector_id: u32,
     pub height: u32,
     pub name: String,
-    /// One of "gym_bouldering"
+    /// One of "gym_bouldering", "gym_sportclimbing"
     pub category: String,
     pub gym_boulders: Option<Vec<Climb>>,
     pub gym_routes: Option<Vec<Climb>>,
