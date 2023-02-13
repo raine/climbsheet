@@ -99,7 +99,8 @@ pub async fn add_wall_to_sheet(
     gym_sheet_routes: &HashSet<ClimbSheetRow>,
     gym: &vertical_life::Gym,
     wall: &vertical_life::Wall,
-) -> Result<()> {
+) -> Result<Vec<vertical_life::Climb>> {
+    let mut new_climbs = vec![];
     let sheet_id = spreadsheet.spreadsheet_id.as_ref().unwrap();
     let (sheet_name, sheet_id_num) =
         get_sheet_for_gym_name_and_wall_category(spreadsheet, &gym.name, &wall.category);
@@ -112,11 +113,11 @@ pub async fn add_wall_to_sheet(
         }
 
         append_climb_to_sheet(config, sheets, sheet_id, &sheet_name, sheet_id_num, climb).await?;
+        new_climbs.push(climb.to_owned());
     }
 
     sort_sheet_by_column(sheets, sheet_id, sheet_id_num, config.date_column_idx).await?;
-
-    Ok(())
+    Ok(new_climbs)
 }
 
 /// For a gym, return rows from the spreadsheets all sheets (pages) that belong to the gym For

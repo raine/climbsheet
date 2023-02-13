@@ -22,6 +22,7 @@ async fn main() -> Result<()> {
     let mut client =
         vertical_life::VerticalLifeClient::new(result.access_token, result.refresh_token);
     let spreadsheet = sheets::get_spreadsheet(&sheets, &config.sheet_id).await?;
+    let mut new_climbs = vec![];
 
     for gym_id in &config.gyms {
         info!(?gym_id, "getting gym details");
@@ -37,19 +38,22 @@ async fn main() -> Result<()> {
             let sector = client.get_gym_sector(gym_sector.id).await?;
             for wall in sector.walls.iter() {
                 info!(?wall.name, ?wall.category, ?wall.height, "got wall");
-                add_wall_to_sheet(
-                    &config,
-                    &sheets,
-                    &spreadsheet,
-                    &gym_sheet_routes_set,
-                    &gym,
-                    wall,
-                )
-                .await?;
+
+                new_climbs.extend_from_slice(
+                    &add_wall_to_sheet(
+                        &config,
+                        &sheets,
+                        &spreadsheet,
+                        &gym_sheet_routes_set,
+                        &gym,
+                        wall,
+                    )
+                    .await?,
+                );
             }
         }
     }
 
-    info!("done");
+    info!(?new_climbs, "done");
     Ok(())
 }
