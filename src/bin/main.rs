@@ -11,7 +11,7 @@ use tracing::*;
 async fn main() -> Result<()> {
     setup::setup()?;
     let config = config::read_config();
-    let sheets = sheets::get_client().await?;
+    let sheets = sheets::get_client(&config.service_account_credentials_path).await?;
     info!(?config.gyms, "starting with config");
 
     let result = vertical_life::VerticalLifeAuthClient::do_auth_flow(

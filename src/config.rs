@@ -1,6 +1,6 @@
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
-use std::env;
+use std::{env, path::PathBuf};
 use tracing::error;
 
 const CONFIG_PATH_ENV: &str = "CONFIG_PATH";
@@ -22,6 +22,7 @@ impl Default for SecretString {
 
 #[derive(Deserialize, Debug, Default)]
 pub struct Config {
+    pub service_account_credentials_path: PathBuf,
     pub sheet_id: String,
     pub vertical_life_email: String,
     pub vertical_life_password: SecretString,

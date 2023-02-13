@@ -1,6 +1,6 @@
 extern crate google_sheets4 as sheets4;
 
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, path::Path, sync::Arc};
 
 use eyre::Result;
 use lazy_static::lazy_static;
@@ -21,8 +21,8 @@ pub type SheetsClient = Sheets<HttpsConnector<HttpConnector>>;
 pub type Spreadsheet = sheets4::api::Spreadsheet;
 pub type Row = Vec<String>;
 
-pub async fn get_client() -> Result<SheetsClient> {
-    let secret = sheets4::oauth2::read_service_account_key("credentials.json").await?;
+pub async fn get_client(credentials_path: &Path) -> Result<SheetsClient> {
+    let secret = sheets4::oauth2::read_service_account_key(credentials_path).await?;
     let connector = sheets4::hyper_rustls::HttpsConnectorBuilder::new()
         .with_native_roots()
         .https_only()
