@@ -13,6 +13,7 @@ pub struct Config {
     pub vertical_life_password: Secret<String>,
     pub gyms: Vec<u32>,
     pub climb_color_column_idx: i32,
+    pub grade_column_idx: i32,
     pub date_column_idx: i32,
 }
 

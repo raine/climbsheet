@@ -4,11 +4,12 @@ use crate::{
     config,
     sheets::{
         self, get_sheet_rows, get_updated_row_from_update_values_response,
-        set_cell_background_color, sort_sheet_by_column, SheetsClient, Spreadsheet,
+        set_range_background_color, sort_sheet_by_column, SheetsClient, Spreadsheet,
     },
     vertical_life,
 };
 use eyre::Result;
+use google_sheets4::api::GridRange;
 use tracing::*;
 
 /// Spreadsheet rows of type Vec<String> are parsed to these to make them a bit
@@ -80,13 +81,17 @@ async fn append_climb_to_sheet(
     let res = sheets::append_row(sheets, sheet_id, sheet_name, climb.to_sheet_row()).await?;
     tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
     let row_n = get_updated_row_from_update_values_response(&res);
-    set_cell_background_color(
+    set_range_background_color(
         sheets,
         sheet_id,
-        sheet_id_num,
         &climb.color,
-        row_n,
-        config.climb_color_column_idx,
+        GridRange {
+            sheet_id: Some(sheet_id_num),
+            start_row_index: Some(row_n),
+            end_row_index: Some(row_n + 1),
+            start_column_index: Some(config.climb_color_column_idx),
+            end_column_index: Some(config.climb_color_column_idx + 1),
+        },
     )
     .await?;
     Ok(())

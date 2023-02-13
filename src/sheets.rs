@@ -130,13 +130,11 @@ pub async fn sort_sheet_by_column(
     Ok(())
 }
 
-pub async fn set_cell_background_color(
+pub async fn set_range_background_color(
     sheets: &SheetsClient,
     sheet_id: &str,
-    sheet_id_num: i32,
     hex_color: &str,
-    row: i32,
-    column: i32,
+    grid_range: GridRange,
 ) -> Result<()> {
     let style = CellFormat {
         background_color: Some(color_from_hex(hex_color)),
@@ -144,13 +142,7 @@ pub async fn set_cell_background_color(
     };
 
     let repeat_cell_req = RepeatCellRequest {
-        range: Some(GridRange {
-            sheet_id: Some(sheet_id_num),
-            start_column_index: Some(column),
-            end_column_index: Some(column + 1),
-            start_row_index: Some(row),
-            end_row_index: Some(row + 1),
-        }),
+        range: Some(grid_range),
         cell: Some(CellData {
             user_entered_format: Some(style),
             ..Default::default()
