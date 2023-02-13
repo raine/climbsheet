@@ -5,6 +5,7 @@ use climbsheet::{
     config, setup, sheets, vertical_life,
 };
 use eyre::Result;
+use secrecy::ExposeSecret;
 use tracing::*;
 
 #[tokio::main]

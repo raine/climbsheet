@@ -1,31 +1,16 @@
-use secrecy::{ExposeSecret, Secret};
+use secrecy::Secret;
 use serde::Deserialize;
 use std::{env, path::PathBuf};
 use tracing::error;
 
 const CONFIG_PATH_ENV: &str = "CONFIG_PATH";
 
-#[derive(Debug, Deserialize)]
-pub struct SecretString(Secret<String>);
-
-impl SecretString {
-    pub fn expose_secret(&self) -> &str {
-        self.0.expose_secret()
-    }
-}
-
-impl Default for SecretString {
-    fn default() -> Self {
-        SecretString(Secret::new("".to_string()))
-    }
-}
-
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug)]
 pub struct Config {
     pub service_account_credentials_path: PathBuf,
     pub sheet_id: String,
     pub vertical_life_email: String,
-    pub vertical_life_password: SecretString,
+    pub vertical_life_password: Secret<String>,
     pub gyms: Vec<u32>,
     pub climb_color_column_idx: i32,
     pub date_column_idx: i32,

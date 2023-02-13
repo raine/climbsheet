@@ -1,6 +1,7 @@
 use std::io::Write;
 
 use eyre::Result;
+use secrecy::ExposeSecret;
 use tracing::*;
 
 use climbsheet::{config, setup, vertical_life};
