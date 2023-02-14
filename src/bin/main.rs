@@ -1,9 +1,7 @@
+#![allow(dead_code, unused_imports, unused_variables)]
 use std::collections::HashSet;
 
-use climbsheet::{
-    climb_sheet::{add_wall_to_sheet, get_gym_routes_from_sheet},
-    config, setup, sheets, vertical_life,
-};
+use climbsheet::{climb_sheet::ClimbSheet, config, setup, sheets, vertical_life};
 use eyre::Result;
 use secrecy::ExposeSecret;
 use tracing::*;
@@ -12,7 +10,7 @@ use tracing::*;
 async fn main() -> Result<()> {
     setup::setup()?;
     let config = config::read_config();
-    let sheets = sheets::get_client(&config.service_account_credentials_path).await?;
+    let climbsheet = ClimbSheet::new(&config).await?;
     info!(?config.gyms, "starting with config");
 
     let result = vertical_life::VerticalLifeAuthClient::do_auth_flow(
@@ -22,7 +20,6 @@ async fn main() -> Result<()> {
     .await?;
     let mut client =
         vertical_life::VerticalLifeClient::new(result.access_token, result.refresh_token);
-    let spreadsheet = sheets::get_spreadsheet(&sheets, &config.sheet_id).await?;
     let mut new_climbs = vec![];
 
     for gym_id in &config.gyms {
@@ -30,7 +27,7 @@ async fn main() -> Result<()> {
         let gym = client.get_gym_details(*gym_id).await?;
         // Get existing climbs from spreadsheet for the gym, so that we can check in
         // add_wall_to_sheet if the climb already exists in the sheet, and skip adding it
-        let gym_sheet_routes = get_gym_routes_from_sheet(&config, &sheets, &gym).await?;
+        let gym_sheet_routes = climbsheet.get_gym_routes_from_sheet(&gym).await?;
         let gym_sheet_routes_set: HashSet<_> = gym_sheet_routes.into_iter().collect();
 
         info!(?gym.id, ?gym.name, ?gym.boulder_count, ?gym.route_count, "got gym");
@@ -41,15 +38,9 @@ async fn main() -> Result<()> {
                 info!(?wall.name, ?wall.category, ?wall.height, "got wall");
 
                 new_climbs.extend_from_slice(
-                    &add_wall_to_sheet(
-                        &config,
-                        &sheets,
-                        &spreadsheet,
-                        &gym_sheet_routes_set,
-                        &gym,
-                        wall,
-                    )
-                    .await?,
+                    &climbsheet
+                        .add_wall_to_sheet(&gym_sheet_routes_set, &gym, wall)
+                        .await?,
                 );
             }
         }

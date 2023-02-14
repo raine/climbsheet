@@ -133,11 +133,11 @@ pub async fn sort_sheet_by_column(
 pub async fn set_range_background_color(
     sheets: &SheetsClient,
     sheet_id: &str,
-    hex_color: &str,
+    background_color: Option<Color>,
     grid_range: GridRange,
 ) -> Result<()> {
     let style = CellFormat {
-        background_color: Some(color_from_hex(hex_color)),
+        background_color,
         ..Default::default()
     };
 
@@ -147,7 +147,7 @@ pub async fn set_range_background_color(
             user_entered_format: Some(style),
             ..Default::default()
         }),
-        fields: Some("*".to_string()),
+        fields: Some("userEnteredFormat(backgroundColor)".to_string()),
     };
 
     let req = BatchUpdateSpreadsheetRequest {
@@ -242,7 +242,7 @@ fn parse_row_from_range(range: &str) -> i32 {
     caps.get(1).unwrap().as_str().parse::<i32>().unwrap()
 }
 
-fn color_from_hex(hex: &str) -> Color {
+pub fn color_from_hex(hex: &str) -> Color {
     let r = u8::from_str_radix(&hex[1..3], 16).unwrap();
     let g = u8::from_str_radix(&hex[3..5], 16).unwrap();
     let b = u8::from_str_radix(&hex[5..7], 16).unwrap();

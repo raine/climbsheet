@@ -5,7 +5,7 @@ use tracing::error;
 
 const CONFIG_PATH_ENV: &str = "CONFIG_PATH";
 
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Config {
     pub service_account_credentials_path: PathBuf,
     pub sheet_id: String,

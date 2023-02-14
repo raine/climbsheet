@@ -19,7 +19,7 @@ async fn main() -> Result<()> {
         "#d3ffe2",
         GridRange {
             start_row_index: Some(1),
-            end_row_index: Some(4),
+            end_row_index: Some(10),
             start_column_index: Some(config.grade_column_idx),
             end_column_index: Some(config.grade_column_idx + 1),
             sheet_id: Some(0),
