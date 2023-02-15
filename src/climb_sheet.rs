@@ -99,28 +99,25 @@ impl<'a> ClimbSheet<'a> {
         gym: &vertical_life::Gym,
     ) -> Result<Vec<ClimbSheetRow>> {
         info!(?gym, "getting gym routes from sheet");
-        let gym_sheet_names = vertical_life::WALL_CATEGORIES.iter().map(|c| {
-            format_sheet_name(
-                parse_location_from_gym_name(&gym.name),
-                &wall_category_to_plural_human_type(c),
-            )
-        });
 
-        let sheets_rows =
-            futures::future::join_all(gym_sheet_names.into_iter().map(|sheet_name| async move {
-                sheets::get_sheet_rows(&self.sheet_client, &self.config.sheet_id, &sheet_name)
-                    .await
-                    .map(|rows| {
-                        rows.into_iter()
-                            // Skip the header row
-                            .skip(1)
-                            .map(ClimbSheetRow::from)
-                            .collect::<Vec<_>>()
-                    })
-            }))
-            .await
+        let gym_sheets = self.get_gym_sheets(gym).await?;
+        let gym_sheet_names = gym_sheets
             .into_iter()
-            .collect::<Result<Vec<_>>>()?;
+            .map(|s| s.properties.as_ref().unwrap().title.as_ref().unwrap());
+        let sheets_rows = futures::future::join_all(gym_sheet_names.map(|sheet_name| async move {
+            sheets::get_sheet_rows(&self.sheet_client, &self.config.sheet_id, sheet_name)
+                .await
+                .map(|rows| {
+                    rows.into_iter()
+                        // Skip the header row
+                        .skip(1)
+                        .map(ClimbSheetRow::from)
+                        .collect::<Vec<_>>()
+                })
+        }))
+        .await
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?;
 
         Ok(sheets_rows.into_iter().flatten().collect())
     }
@@ -144,6 +141,7 @@ impl<'a> ClimbSheet<'a> {
 
             self.append_climb_to_sheet(&sheet_name, sheet_id_num, climb)
                 .await?;
+
             new_climbs.push(climb.to_owned());
         }
 
