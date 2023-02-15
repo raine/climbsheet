@@ -44,6 +44,8 @@ async fn main() -> Result<()> {
                 );
             }
         }
+
+        climbsheet.highlight_new_routes(&gym).await?;
     }
 
     info!(?new_climbs, "done");

@@ -2,12 +2,15 @@ use std::collections::HashSet;
 
 use crate::{
     config,
-    sheets::{self, SheetsClient, Spreadsheet},
+    sheets::{self, Row, SheetsClient, Spreadsheet},
     vertical_life,
 };
 use eyre::Result;
-use google_sheets4::api::GridRange;
+use google_sheets4::api::{GridRange, Sheet};
 use tracing::*;
+
+const HUMAN_DATE_FORMAT: &str = "%-d.%-m.%Y";
+const NEW_ROUTE_WITHIN_DAYS: i64 = 7;
 
 /// Spreadsheet rows of type Vec<String> are parsed to these to make them a bit
 /// more comprehensible
@@ -18,6 +21,30 @@ pub struct ClimbSheetRow {
     set_at_human_date: String,
     route_setter: String,
     parent_name: String,
+}
+
+impl vertical_life::Climb {
+    pub fn to_sheet_row(&self) -> Row {
+        vec![
+            self.route_card_label.to_string(),
+            self.difficulty.to_string(),
+            self.set_at.format(HUMAN_DATE_FORMAT).to_string(),
+            self.route_setter.to_string(),
+            self.parent_name.to_string(),
+        ]
+    }
+}
+
+impl ClimbSheetRow {
+    // Figure out if row is "new". It's new if the human date in format of d.m.yyyy is within last
+    // NEW_ROUTE_WITHIN_DAYS days
+    pub fn is_new(&self) -> bool {
+        let next_midnight = chrono::Utc::now().date_naive() + chrono::Duration::days(1);
+        let set_at = chrono::NaiveDate::parse_from_str(&self.set_at_human_date, HUMAN_DATE_FORMAT)
+            .expect("Failed to parse date");
+        let days_since_set = next_midnight.signed_duration_since(set_at).num_days();
+        days_since_set <= NEW_ROUTE_WITHIN_DAYS + 1 // +1 because we compare against the next midnight
+    }
 }
 
 impl From<&vertical_life::Climb> for ClimbSheetRow {
@@ -185,6 +212,7 @@ impl<'a> ClimbSheet<'a> {
     }
 
     pub async fn reset_grade_column_background(&self, sheet_id_num: i32) -> Result<()> {
+        info!(?sheet_id_num, "resetting grade column background");
         sheets::set_range_background_color(
             &self.sheet_client,
             &self.sheet_id,
@@ -193,13 +221,85 @@ impl<'a> ClimbSheet<'a> {
                 sheet_id: Some(sheet_id_num),
                 start_row_index: Some(1),
                 end_row_index: None,
-                start_column_index: Some(self.config.climb_color_column_idx),
-                end_column_index: Some(self.config.climb_color_column_idx + 1),
+                start_column_index: Some(self.config.date_column_idx),
+                end_column_index: Some(self.config.date_column_idx + 1),
             },
         )
         .await?;
 
         Ok(())
+    }
+
+    pub async fn highlight_new_routes(&self, gym: &vertical_life::Gym) -> Result<()> {
+        info!(?gym.id, "highlighting new routes");
+        let gym_sheets = self.get_gym_sheets(gym).await?;
+        for sheet in gym_sheets {
+            let sheet_name = sheet.properties.as_ref().unwrap().title.as_ref().unwrap();
+            let rows =
+                sheets::get_sheet_rows(&self.sheet_client, &self.config.sheet_id, sheet_name)
+                    .await
+                    .map(|rows| {
+                        rows.into_iter()
+                            // Skip the header row
+                            .skip(1)
+                            .map(ClimbSheetRow::from)
+                            .collect::<Vec<_>>()
+                    })?;
+
+            // Find last index in rows that would be still considered a new route
+            // (i.e. it was added within the last week)
+            let last_new_route_idx = rows
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, row)| row.is_new())
+                .map(|(idx, _)| idx)
+                .unwrap_or(0);
+
+            let sheet_id_num = sheet.properties.as_ref().unwrap().sheet_id.unwrap();
+            self.reset_grade_column_background(sheet_id_num).await?;
+            sheets::set_range_background_color(
+                &self.sheet_client,
+                &self.sheet_id,
+                Some(sheets::color_from_hex(
+                    &self.config.new_climb_background_color,
+                )),
+                GridRange {
+                    sheet_id: Some(sheet_id_num),
+                    start_row_index: Some(1),
+                    // +2 because have to account account for header row.
+                    // Index starts from first non-header row.
+                    end_row_index: Some(last_new_route_idx as i32 + 2),
+                    start_column_index: Some(self.config.date_column_idx),
+                    end_column_index: Some(self.config.date_column_idx + 1),
+                },
+            )
+            .await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_gym_sheets(&self, gym: &vertical_life::Gym) -> Result<Vec<&Sheet>> {
+        let gym_location_name = parse_location_from_gym_name(&gym.name);
+        Ok(self
+            .spreadsheet
+            .sheets
+            .as_ref()
+            .map(|sheets| {
+                sheets
+                    .iter()
+                    .filter(|s| {
+                        s.properties
+                            .as_ref()
+                            .and_then(|p| {
+                                p.title.as_ref().map(|t| t.starts_with(&gym_location_name))
+                            })
+                            .unwrap_or(false)
+                    })
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_else(Vec::new))
     }
 }
 
