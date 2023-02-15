@@ -167,45 +167,6 @@ pub async fn set_range_background_color(
     Ok(())
 }
 
-pub async fn reset_row_format(
-    sheets: &SheetsClient,
-    sheet_id: &str,
-    sheet_id_num: i32,
-    row: i32,
-) -> Result<()> {
-    let style = CellFormat::default();
-    let repeat_cell_req = RepeatCellRequest {
-        range: Some(GridRange {
-            sheet_id: Some(sheet_id_num),
-            start_column_index: Some(0),
-            end_column_index: None,
-            start_row_index: Some(row),
-            end_row_index: Some(row + 1),
-        }),
-        cell: Some(CellData {
-            user_entered_format: Some(style),
-            ..Default::default()
-        }),
-        fields: Some("*".to_string()),
-    };
-
-    let req = BatchUpdateSpreadsheetRequest {
-        requests: Some(vec![Request {
-            repeat_cell: Some(repeat_cell_req),
-            ..Default::default()
-        }]),
-        ..Default::default()
-    };
-
-    let _response = sheets
-        .spreadsheets()
-        .batch_update(req, sheet_id)
-        .doit()
-        .await?;
-
-    Ok(())
-}
-
 pub async fn get_sheet_rows(
     sheets: &SheetsClient,
     sheet_id: &str,
