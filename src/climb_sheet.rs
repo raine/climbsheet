@@ -168,7 +168,6 @@ impl<'a> ClimbSheet<'a> {
             climb.to_sheet_row(),
         )
         .await?;
-        tokio::time::sleep(std::time::Duration::from_millis(5000)).await;
         let row_n = sheets::get_updated_row_from_update_values_response(&res);
         sheets::set_range_background_color(
             &self.sheet_client,
@@ -183,6 +182,7 @@ impl<'a> ClimbSheet<'a> {
             },
         )
         .await?;
+        tokio::time::sleep(std::time::Duration::from_millis(6000)).await;
         Ok(())
     }
 
