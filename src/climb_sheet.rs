@@ -31,6 +31,7 @@ impl vertical_life::Climb {
             self.set_at.format(HUMAN_DATE_FORMAT).to_string(),
             self.route_setter.to_string(),
             self.parent_name.to_string(),
+            format!(r#"=HYPERLINK("{}"; "🔗")"#, self.share_url),
         ]
     }
 }

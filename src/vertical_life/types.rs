@@ -64,6 +64,7 @@ pub struct Climb {
     pub parent_name: String,
     pub route_card_label: String,
     pub route_setter: String,
+    pub share_url: String,
     /// One of "gym_boulder" or "gym_route"
     pub item_type: String,
 }
