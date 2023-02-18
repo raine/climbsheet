@@ -23,3 +23,5 @@ See `src/config.rs` for some documentation on configuration.
    row will be aligned wrong relative to columns. The fix is to leave one row
    after duplicating and remove the extra row later. Hopefully the program will
    be able to automatically remove non-existent rows soon.
+
+4. Gym maps can be retrieved with `cargo run get_gym_images`.
