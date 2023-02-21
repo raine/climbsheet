@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+kubectl delete job/climbsheet-test || true
+kubectl apply -f yaml
+kubectl create job --from=cronjob/climbsheet-cronjob climbsheet-test

@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+image="climbsheet"
+commit=$(git rev-parse --verify HEAD)
+
+cd "$(git rev-parse --show-toplevel)"
+
+docker build -t $image .
+docker tag $image "$REGISTRY/$image:$commit"
+docker tag $image "$REGISTRY/$image:latest"
+docker push --all-tags "$REGISTRY/$image"
+
+image_with_sha=$(docker inspect --format='{{index .RepoDigests 0}}' $image:latest)
+echo "$image_with_sha"
+
+cd deploy/
+kustomize edit set image TEMP="$image_with_sha"
+kubectl apply -k .
+git checkout -- ./kustomization.yaml

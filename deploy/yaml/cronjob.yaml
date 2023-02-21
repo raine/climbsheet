@@ -1,0 +1,36 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: climbsheet-cronjob
+spec:
+  schedule: '0 16 * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/instance: climbsheet
+            app.kubernetes.io/name: climbsheet
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: private-registry
+          containers:
+            - name: climbsheet
+              imagePullPolicy: Always
+              image: TEMP
+              volumeMounts:
+                - mountPath: '/data'
+                  name: climbsheet-volume
+              env:
+                - name: CONFIG_PATH
+                  value: '/data/config.toml'
+                - name: RUST_LOG
+                  value: 'info'
+          volumes:
+            - name: climbsheet-volume
+              persistentVolumeClaim:
+                claimName: climbsheet-pvc
