@@ -3,7 +3,7 @@ kind: CronJob
 metadata:
   name: climbsheet-cronjob
 spec:
-  schedule: '0 16 * * *'
+  schedule: '0 13 * * *'
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1
