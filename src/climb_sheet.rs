@@ -252,28 +252,30 @@ impl<'a> ClimbSheet<'a> {
                 .enumerate()
                 .rev()
                 .find(|(_, row)| row.is_new())
-                .map(|(idx, _)| idx)
-                .unwrap_or(0);
+                .map(|(idx, _)| idx);
 
             let sheet_id_num = sheet.properties.as_ref().unwrap().sheet_id.unwrap();
             self.reset_grade_column_background(sheet_id_num).await?;
-            sheets::set_range_background_color(
-                &self.sheet_client,
-                &self.sheet_id,
-                Some(sheets::color_from_hex(
-                    &self.config.new_climb_background_color,
-                )),
-                GridRange {
-                    sheet_id: Some(sheet_id_num),
-                    start_row_index: Some(1),
-                    // +2 because have to account account for header row.
-                    // Index starts from first non-header row.
-                    end_row_index: Some(last_new_route_idx as i32 + 2),
-                    start_column_index: Some(self.config.date_column_idx),
-                    end_column_index: Some(self.config.date_column_idx + 1),
-                },
-            )
-            .await?;
+
+            if let Some(last_new_route_idx) = last_new_route_idx {
+                sheets::set_range_background_color(
+                    &self.sheet_client,
+                    &self.sheet_id,
+                    Some(sheets::color_from_hex(
+                        &self.config.new_climb_background_color,
+                    )),
+                    GridRange {
+                        sheet_id: Some(sheet_id_num),
+                        start_row_index: Some(1),
+                        // +2 because have to account account for header row.
+                        // Index starts from first non-header row.
+                        end_row_index: Some(last_new_route_idx as i32 + 2),
+                        start_column_index: Some(self.config.date_column_idx),
+                        end_column_index: Some(self.config.date_column_idx + 1),
+                    },
+                )
+                .await?;
+            }
         }
 
         Ok(())
