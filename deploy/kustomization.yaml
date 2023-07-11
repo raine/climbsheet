@@ -1,5 +1,6 @@
 resources:
   - yaml/cronjob.yaml
+  - yaml/pvc.yaml
 
 namespace: default
 apiVersion: kustomize.config.k8s.io/v1beta1
