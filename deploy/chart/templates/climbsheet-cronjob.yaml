@@ -22,6 +22,10 @@ spec:
             - name: climbsheet
               imagePullPolicy: Always
               image: {{ .Values.image }}
+              args:
+                - /bin/sh
+                - -c
+                - ./climbsheet && curl -fsS --retry 3 {{ .Values.healthcheckUrl | quote }}
               volumeMounts:
                 - mountPath: "/data"
                   name: climbsheet-volume
