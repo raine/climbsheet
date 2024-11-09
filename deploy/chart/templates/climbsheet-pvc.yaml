@@ -1,0 +1,13 @@
+{{- $fullName := printf "%s-%s" (include "climbsheet.fullname" .) "pvc" -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ $fullName }}
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1000Gi
+  volumeName: climbsheet-pv

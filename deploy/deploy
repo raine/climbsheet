@@ -2,6 +2,7 @@
 
 set -euo pipefail
 
+git_root="$(git rev-parse --show-toplevel)"
 image="climbsheet"
 commit=$(git rev-parse --verify HEAD)
 
@@ -11,11 +12,11 @@ docker build -t $image .
 docker tag $image "$REGISTRY/$image:$commit"
 docker tag $image "$REGISTRY/$image:latest"
 docker push --all-tags "$REGISTRY/$image"
+docker push "$REGISTRY/$image"
 
-image_with_sha=$(docker inspect --format='{{index .RepoDigests 0}}' $image:latest)
-echo "$image_with_sha"
+image_with_sha="$(docker inspect --format='{{index .RepoDigests 0}}' $image:latest)"
 
-cd deploy/
-kustomize edit set image TEMP="$image_with_sha"
-kubectl apply -k .
-git checkout -- ./kustomization.yaml
+helm upgrade \
+	--reuse-values \
+	--set web.image="$image_with_sha" \
+	"$HELM_RELEASE" "$git_root/deploy/chart"

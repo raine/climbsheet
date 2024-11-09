@@ -1,13 +1,14 @@
+{{- $fullName := printf "%s-%s" (include "climbsheet.fullname" .) "pv" -}}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: climbsheet-pv
+  name: {{ $fullName }}
   labels:
     type: local
 spec:
   storageClassName: manual
   capacity:
-    storage: 1000Gi
+   storage: 1000Gi
   claimRef:
     namespace: default
     name: climbsheet-pvc
@@ -16,16 +17,3 @@ spec:
   persistentVolumeReclaimPolicy: Retain
   hostPath:
     path: "/mnt/volume-fsn1-1/local-storage/climbsheet"
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: climbsheet-pvc
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1000Gi
-  volumeName: climbsheet-pv
