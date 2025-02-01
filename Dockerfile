@@ -19,4 +19,4 @@ RUN --mount=target=/var/lib/apt/lists,type=cache \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/target/release/climbsheet .
-ENTRYPOINT ["./climbsheet"]
+CMD ["./climbsheet"]

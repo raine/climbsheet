@@ -18,5 +18,5 @@ image_with_sha="$(docker inspect --format='{{index .RepoDigests 0}}' $image:late
 
 helm upgrade \
 	--reuse-values \
-	--set web.image="$image_with_sha" \
+	--set image="$image_with_sha" \
 	"$HELM_RELEASE" "$git_root/deploy/chart"
